@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 # 라우터들 import
-from routers import chatbot_router, image_router, system_router
+from routers import chatbot_router, image_router, system_router, food_router
 from routers.chatbot import initialize_chatbot
 
 # 환경변수 로드
@@ -37,6 +37,7 @@ app.add_middleware(
 app.include_router(system_router)     # /, /health, /crawl
 app.include_router(chatbot_router)    # /chatbot/*
 app.include_router(image_router)      # /api/food/*
+app.include_router(food_router)       # /api/food/analyze/text
 
 @app.on_event("startup")
 async def startup_event():

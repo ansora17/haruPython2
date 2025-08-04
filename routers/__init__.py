@@ -6,9 +6,11 @@ API 라우터들
 from .chatbot import router as chatbot_router
 from .image import router as image_router  
 from .system import router as system_router
+from .food import router as food_router
 
 __all__ = [
     "chatbot_router",
     "image_router", 
-    "system_router"
+    "system_router",
+    "food_router"
 ]
