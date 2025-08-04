@@ -32,7 +32,32 @@ async def analyze_food_text(request: dict):
             {
                 "role": "user",
                 "content": f"""
-You are a food analysis expert. 아래의 음식(또는 음식 설명)을 분석하여 영양성분 정보를 제공하세요.\n\n음식: {food_text}\n\n아래 JSON 형식으로만 응답하세요.\n단일 음식이면 객체, 여러 음식이면 배열로 반환하세요.\n\n{{\n    \"foodName\": \"음식 이름\",\n    \"quantity\": 1,\n    \"calories\": 숫자값,\n    \"carbohydrate\": 숫자값,\n    \"protein\": 숫자값,\n    \"fat\": 숫자값,\n    \"sodium\": 숫자값,\n    \"fiber\": 숫자값,\n    \"totalAmount\": 숫자값,\n    \"foodCategory\": \"한식/중식/일식/양식/분식/음료 중 하나\"\n}}\n\n⚠ 반드시 유효한 JSON만 반환하세요. 설명, 텍스트 추가 금지. 모든 값은 한국어로.\n"""
+You are a food analysis expert. 아래의 음식(또는 음식 설명)을 분석하여 영양성분 정보를 제공하세요.
+
+음식: {food_text}
+
+아래 JSON 형식으로만 응답하세요.
+단일 음식이면 객체, 여러 음식이면 배열로 반환하세요.
+
+{{
+    "foodName": "음식 이름",
+    "quantity": 숫자값,
+    "calories": 숫자값,
+    "carbohydrate": 숫자값,
+    "protein": 숫자값,
+    "fat": 숫자값,
+    "sodium": 숫자값,
+    "fiber": 숫자값,
+    "totalAmount": 숫자값,
+    "foodCategory": "한식/중식/일식/양식/분식/음료 중 하나"
+}}
+
+⚠ IMPORTANT: 
+1. 반드시 유효한 JSON만 반환하세요. 설명, 텍스트 추가 금지.
+2. 모든 값은 한국어로.
+3. 같은 음식이 여러 번 언급되면 하나로 합쳐서 quantity에 총 개수를 표시하고 영양성분을 곱하세요.
+4. quantity 필드는 해당 음식의 총 개수를 나타내야 합니다.
+"""
             }
         ]
         response = client.chat.completions.create(

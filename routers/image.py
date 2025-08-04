@@ -78,14 +78,21 @@ async def analyze_food_image(file: UploadFile = File(...)):
                 "type": "encoding_error"
             }
         
-        messages = [{
-            "role": "user",
-            "content": [{
-                "type": "text",
-                "text": """
-You are a food image analysis expert. Analyze the food image and provide nutritional information.
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": """
+You are a food image analysis expert with deep knowledge in culinary arts. 
+Please analyze the food image provided below carefully, considering its appearance, ingredients, and regional characteristics.  
 
-Please provide the analysis in JSON format:
+IMPORTANT: Analyze ALL foods visible in the image. If the same food appears multiple times, combine them into one entry with the total quantity and multiplied nutritional values.
+
+Please provide the analysis in JSON format with the following structure:
+
+For single food:
 {
     "foodName": "음식 이름",
     "quantity": 1,
@@ -96,19 +103,59 @@ Please provide the analysis in JSON format:
     "sodium": 숫자값,
     "fiber": 숫자값,
     "totalAmount": 숫자값,
-    "foodCategory": "한식"
+    "foodCategory": "한식/중식/일식/양식/분식/음료 중 하나"
 }
 
-IMPORTANT: 
-- Return ONLY valid JSON format
-- All text in Korean
-- foodCategory must be EXACTLY ONE of: "한식", "중식", "일식", "양식", "분식", "음료"
+For multiple foods (2 or more):
+[
+    {
+        "foodName": "음식 이름 1",
+        "quantity": 숫자값,
+        "calories": 숫자값,
+        "carbohydrate": 숫자값,
+        "protein": 숫자값,
+        "fat": 숫자값,
+        "sodium": 숫자값,
+        "fiber": 숫자값,
+        "totalAmount": 숫자값,
+        "foodCategory": "한식/중식/일식/양식/분식/음료 중 하나"
+    },
+    {
+        "foodName": "음식 이름 2",
+        "quantity": 숫자값,
+        "calories": 숫자값,
+        "carbohydrate": 숫자값,
+        "protein": 숫자값,
+        "fat": 숫자값,
+        "sodium": 숫자값,
+        "fiber": 숫자값,
+        "totalAmount": 숫자값,
+        "foodCategory": "한식/중식/일식/양식/분식/음료 중 하나"
+    }
+]
+
+⚠ IMPORTANT: 
+1. Return ONLY valid JSON format
+2. All numeric values should be numbers (not strings)
+3. All text values should be in Korean
+4. Do not include any additional text or explanations
+5. Make sure all quotes are properly escaped
+6. If there's only one food, return a single object. If there are multiple foods, return an array of objects.
+7. Include ALL foods visible in the image, even if there are many
+8. If the same food appears multiple times, combine them into one entry with the total quantity and multiply the nutritional values by the number of items
+9. Each unique food should be analyzed separately with its own nutritional values
+10. The quantity field should represent the total number of that specific food item
 """
-            }, {
-                "type": "image_url",
-                "image_url": {"url": f"data:image/png;base64,{encoded}"}
-            }]
-        }]
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{file.content_type};base64,{encoded}"
+                        }
+                    }
+                ]
+            }
+        ]
         
         # OpenAI API 호출
         client = openai.OpenAI(api_key=api_key)
@@ -121,31 +168,52 @@ IMPORTANT:
         
         content = response.choices[0].message.content.strip()
         
-        # JSON 파싱
-        json_match = re.search(r'\{.*\}', content, re.DOTALL)
-        if json_match:
-            try:
-                result = json.loads(json_match.group())
-                
-                # foodCategory 유효성 검사
-                valid_categories = ["한식", "중식", "일식", "양식", "분식", "음료"]
-                if result.get("foodCategory") not in valid_categories:
-                    result["foodCategory"] = "기타"
-                
-                return {
-                    "success": True,
-                    "result": result,
-                    "type": "image_analysis",
-                    "model": "gpt-4o",
-                    "filename": file.filename
-                }
-            except json.JSONDecodeError:
-                pass
+        # JSON 응답 파싱
+        content = response.choices[0].message.content.strip()
+        print(f"OpenAI 응답: {content}")
         
+        # 배열과 객체 모두 처리할 수 있도록 개선
+        json_patterns = [
+            r'\[.*\]',  # 배열 패턴
+            r'\{.*\}',  # 객체 패턴
+        ]
+        
+        for pattern in json_patterns:
+            json_match = re.search(pattern, content, re.DOTALL)
+            if json_match:
+                json_str = json_match.group()
+                try:
+                    result_json = json.loads(json_str)
+                    
+                    # foodCategory 유효성 검사
+                    valid_categories = ["한식", "중식", "일식", "양식", "분식", "음료"]
+                    if isinstance(result_json, list):
+                        for item in result_json:
+                            if item.get("foodCategory") not in valid_categories:
+                                item["foodCategory"] = "기타"
+                    else:
+                        if result_json.get("foodCategory") not in valid_categories:
+                            result_json["foodCategory"] = "기타"
+                    
+                    return {
+                        "success": True,
+                        "result": result_json,
+                        "type": "image_analysis",
+                        "model": "gpt-4o",
+                        "filename": file.filename
+                    }
+                except json.JSONDecodeError as e:
+                    print(f"JSON 파싱 오류: {e}")
+                    print(f"파싱 시도한 문자열: {json_str}")
+                    continue
+        
+        # 모든 패턴이 실패한 경우
         return {
             "success": False,
-            "error": "AI 응답을 파싱할 수 없습니다",
-            "type": "parse_error"
+            "error": "JSON 형식을 찾을 수 없습니다",
+            "result": content,
+            "type": "image_analysis",
+            "model": "gpt-4o"
         }
         
     except openai.OpenAIError as e:
