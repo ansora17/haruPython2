@@ -83,7 +83,7 @@ async def analyze_food(file: UploadFile = File(...)):
 You are a food image analysis expert with deep knowledge in culinary arts. 
 Please analyze the food image provided below carefully, considering its appearance, ingredients, and regional characteristics.  
 
-IMPORTANT: Analyze ALL foods visible in the image, no matter how many there are. If the same food appears multiple times, combine them into one entry with multiplied nutritional values.
+IMPORTANT: Analyze ALL foods visible in the image. If the same food appears multiple times, combine them into one entry with the total quantity and multiplied nutritional values.
 
 Please provide the analysis in JSON format with the following structure:
 
@@ -137,8 +137,9 @@ For multiple foods (2 or more):
 5. Make sure all quotes are properly escaped
 6. If there's only one food, return a single object. If there are multiple foods, return an array of objects.
 7. Include ALL foods visible in the image, even if there are many
-8. If the same food appears multiple times, combine them into one entry and multiply the nutritional values by the number of items
+8. If the same food appears multiple times, combine them into one entry with the total quantity and multiply the nutritional values by the number of items
 9. Each unique food should be analyzed separately with its own nutritional values
+10. The quantity field should represent the total number of that specific food item
 """
                     },
                     {
@@ -279,6 +280,8 @@ For multiple foods (if the text describes multiple foods):
 6. If there's only one food, return a single object. If there are multiple foods, return an array of objects.
 7. Analyze ALL foods mentioned in the text, even if there are many
 8. Each food should be analyzed separately with its own nutritional values
+9. If the same food is mentioned multiple times, combine them into one entry with the total quantity and multiply the nutritional values by the number of items
+10. The quantity field should represent the total number of that specific food item
 """
             }
         ]
